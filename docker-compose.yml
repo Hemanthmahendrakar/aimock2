@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mock_interview_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - path: ./services/api/.env
+        required: false
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-local-dev-only-change-this-secret-before-deployment}
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/mock_interview_dev
+      REDIS_URL: redis://redis:6379/0
+      FLASK_ENV: development
+      FILE_STORAGE_ROOT: /app/storage/uploads
+      S3_SIGNED_URL_TTL_SECONDS: 3600
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./services/api:/app
+      - ./storage/uploads:/app/storage/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "flask db upgrade &&
+             gunicorn -c gunicorn.conf.py --reload --bind 0.0.0.0:8000 wsgi:app"
+
+  worker:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    env_file:
+      - path: ./services/api/.env
+        required: false
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-local-dev-only-change-this-secret-before-deployment}
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/mock_interview_dev
+      REDIS_URL: redis://redis:6379/0
+      FLASK_ENV: development
+      FILE_STORAGE_ROOT: /app/storage/uploads
+      S3_SIGNED_URL_TTL_SECONDS: 3600
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:3000}
+    volumes:
+      - ./services/api:/app
+      - ./storage/uploads:/app/storage/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A celery_worker.celery worker --loglevel=info
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ""
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

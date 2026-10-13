@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paper: cool off-white, not the generic warm cream */
+  --background: 210 20% 97%;
+  --foreground: 222 32% 14%;
+
+  /* Deep teal — evokes calm rigor, distinct from generic SaaS blue/violet */
+  --primary: 166 45% 26%;
+  --primary-foreground: 0 0% 100%;
+
+  --muted: 210 16% 93%;
+  --muted-foreground: 215 14% 40%;
+
+  --destructive: 3 72% 46%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 214 18% 85%;
+
+  /* Left panel (auth shell) */
+  --panel-ink: 222 32% 12%;
+  --panel-ink-foreground: 210 20% 96%;
+  --panel-accent: 38 62% 58%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
