@@ -1,0 +1,19 @@
+# Local uploaded files contain private student/institute data.
+storage/uploads/*
+!storage/uploads/.gitkeep
+services/api/storage/uploads/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Node / Next.js
+node_modules/
+.next/
+web/.env.local
+
+# Local secrets
+.env
+services/api/.env
